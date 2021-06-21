@@ -11,6 +11,7 @@ class _HomeState extends State<Home> {
   TextEditingController _tituloController = TextEditingController();
   TextEditingController _descricaoController = TextEditingController();
   var _db = AnotacaoHelper();
+  List<Anotacao> _anotacoes = [];
 
   _exibirTelaCadastro(){
     showDialog(
@@ -57,6 +58,20 @@ class _HomeState extends State<Home> {
     );
   }
 
+  _recuperarAnotacoes() async{
+  List anotacoesRecuperadas = await _db.recuperarAnotacoes();
+  List<Anotacao> listaTemporaria = [];
+  for(var item in anotacoesRecuperadas){
+    Anotacao anotacao = Anotacao.fromMap(item);
+    listaTemporaria.add(anotacao);
+  }
+  setState(() {
+    _anotacoes = listaTemporaria;
+  });
+  listaTemporaria = null;
+  //print("Lista anotações: "+anotacoesRecuperadas.toString());
+  }
+
   _salvarAnotacao() async{
     String titulo = _tituloController.text;
     String descricao = _descricaoController.text;
@@ -65,15 +80,44 @@ class _HomeState extends State<Home> {
     Anotacao anotacao = Anotacao(titulo, descricao, DateTime.now().toString());
     int resultado = await _db.salvarAnotacao(anotacao);
     print("Salvar anotação : ${resultado.toString()}");
+
+    _tituloController.clear();
+    _descricaoController.clear();
+    _recuperarAnotacoes();
   }
+
+  @override
+  void initState() {
+    super.initState();
+    _recuperarAnotacoes();
+  }
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Anotações"),
         backgroundColor: Colors.lightGreen,
       ),
-      body: Container(),
+      body: Column(
+        children: [
+          Expanded(
+              child: ListView.builder(
+                itemCount: _anotacoes.length,
+              itemBuilder: (context, index){
+                  final anotacao = _anotacoes[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(anotacao.titulo),
+                      subtitle: Text("${anotacao.data} - ${anotacao.descricao}"),
+                    ),
+                  );
+              }
+              )
+          )
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
